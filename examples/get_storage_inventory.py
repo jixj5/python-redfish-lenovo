@@ -104,11 +104,11 @@ def get_storage_inventory(ip, login_account, login_password, system_id):
                                     return result
                         storage['Drives'] = drive_list
 
+                        volumes_list = []
                         if "Volumes" in response_storage_x_url.dict:
                             volumes_url = response_storage_x_url.dict["Volumes"]["@odata.id"]
                             response_volumes_url = REDFISH_OBJ.get(volumes_url, None)
                             if response_volumes_url.status == 200:
-                                volumes_list = []
                                 for volume in response_volumes_url.dict["Members"]:
                                     volume_inventory = {}
                                     volume_url = volume["@odata.id"]
@@ -141,16 +141,21 @@ def get_storage_inventory(ip, login_account, login_password, system_id):
                                 return result
                         storage['Volumes'] = volumes_list
 
-                        controller_count = response_storage_x_url.dict["StorageControllers@odata.count"]
+                        if "StorageControllers@odata.count" in response_storage_x_url.dict:
+                            controller_count = response_storage_x_url.dict["StorageControllers@odata.count"]
+                        else:
+                            if "StorageControllers" in response_storage_x_url.dict:
+                                controller_count = len(response_storage_x_url.dict["StorageControllers"])
                         # GET the StorageControllers instances resources from each of the Storage resources
                         storage_list = []
                         for controller in range(0, controller_count):
                             storage_controller = {}
-                            for key in response_storage_x_url.dict["StorageControllers"][controller]:
-                                if key not in ["Description", "@odata.context", "@odata.id", "@odata.type",
-                                               "@odata.etag", "Links", "Actions", "RelatedItem"]:
-                                    storage_controller[key] = response_storage_x_url.dict["StorageControllers"][controller][key]
-                            storage_list.append(storage_controller)
+                            if "StorageControllers" in response_storage_x_url.dict:
+                                for key in response_storage_x_url.dict["StorageControllers"][controller]:
+                                    if key not in ["Description", "@odata.context", "@odata.id", "@odata.type",
+                                                "@odata.etag", "Links", "Actions", "RelatedItem"]:
+                                        storage_controller[key] = response_storage_x_url.dict["StorageControllers"][controller][key]
+                                storage_list.append(storage_controller)
                         storage['storage_controller'] = storage_list
                         storage_details.append(storage)
                     else:
